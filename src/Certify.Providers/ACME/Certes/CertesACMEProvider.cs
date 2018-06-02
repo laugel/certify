@@ -14,7 +14,6 @@ using Certify.Models.Config;
 using Certify.Models.Plugins;
 using Certify.Models.Providers;
 using Org.BouncyCastle.Crypto.Digests;
-using Serilog;
 
 namespace Certify.Providers.Certes
 {
@@ -465,20 +464,20 @@ namespace Certify.Providers.Certes
                         return new StatusMessage
                         {
                             IsOK = false,
-                            Message = challengeError?.ToString()
+                            Message = challengeError.Error?.Detail
                         };
                     }
                 }
                 catch (Exception exp)
                 {
-                    Log.Error("Submit Challenge failed. ", exp.Message);
+                    log.Error("Submit Challenge failed. ", exp.Message);
 
                     var challengeError = await challenge.Resource();
 
                     return new StatusMessage
                     {
                         IsOK = false,
-                        Message = challengeError.ToString()
+                        Message = challengeError.Error.Detail
                     };
                 }
             }
@@ -615,7 +614,7 @@ namespace Certify.Providers.Certes
                 // can get error on finalize if the order is already valid
                 certOrder = await orderContext.Resource();
 
-                Log.Error("Order.Finalize", $"Failed to finalize order. Status: {certOrder.Status} ");
+                log.Error("Order.Finalize", $"Failed to finalize order. Status: {certOrder.Status} ");
             }
 
             //TODO: should we iterate here until valid or invalid?

@@ -47,21 +47,25 @@ namespace Certify.Core.Management.Challenges.DNS
         {
         }
 
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
         public async Task<ActionResult> CreateRecord(DnsRecord request)
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
         {
             return new ActionResult
             {
                 IsSuccess = true,
-                Message = $"User Action Required: Please login to your DNS control panel for the domain '{request.TargetDomainName}' and create a new TXT record named '{request.RecordName}' with the value '{request.RecordValue}' (not including quotes). Once completed you can resume the certificate request."
+                Message = $"Please login to your DNS control panel for the domain '{request.TargetDomainName}' and create a new TXT record named: \r\n{request.RecordName} \r\nwith the value:\r\n{request.RecordValue}"
             };
         }
 
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
         public async Task<ActionResult> DeleteRecord(DnsRecord request)
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
         {
             return new ActionResult
             {
                 IsSuccess = true,
-                Message = $"User Action Required: Please login to your DNS control panel for the domain '{request.TargetDomainName}' and delete the TXT record named '{request.RecordName}'."
+                Message = $"Please login to your DNS control panel for the domain '{request.TargetDomainName}' and delete the TXT record named '{request.RecordName}'."
             };
         }
 
