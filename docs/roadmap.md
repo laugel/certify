@@ -5,7 +5,6 @@ Current Project Roadmap (Mid 2018-2019)
 ## Deployment:
 
 * ~~Cleanup UI for different options and ensure deployment is happening as described (unit tests, preview)~~
-* IIS bindings: should only show IP options for Single Site 
 * Child managed cert deployment type
 * Cert cleanup: Need way to tell if cert in use for other things (ftp etc) and either update them or inform user. Manually added https bindings lose cert if deleted through another association 
 * Auto config tests
@@ -23,14 +22,13 @@ if any other deployment (cert only etc) chosen preview still says IIS~~
 * ~~Capture description, result OK and error for each test attempted (so config check can consist of multiple results, stream results via SignalR progress changed?)~~
 
 ## Domain options
-* Ensure wildcard can't be entered alongside label for same domain (*.test.com and www.test.com)
 * check how current UI responds to many IIS sites or many bindings
 
 ## DNS Validation
 * DNS providers not working that reliably, need configurable timeouts
 * if validation fails - need to check/log LE authorization URL info (so status response can be analysed)
-* Need manual and scripted DNS validation options:
-    * Need manual DNS option (email contact with details of DNS record required, detect when it changes and proceed with validation, notify them of completion?) if request is manual could show txt record details then proceed to validation, likewise http validation.
+* ~~Need manual and scripted DNS validation options:~~
+    * ~~Need manual DNS option~~ (email contact with details of DNS record required, detect when it changes and proceed with validation, notify them of completion?) if request is manual could show txt record details then proceed to validation, likewise http validation.
 
 ## Auto config/config check:
 * http-01: Ensure new web.config strategy is working, work back in order of server 2016 hosting, most common issue is auto config fail or config check fail 
@@ -65,6 +63,7 @@ if any other deployment (cert only etc) chosen preview still says IIS~~
 * Revoke not implemented yet
 * Set http client user agent in external API calls
 * Basic/advanced mode for bindings UI so that IP specific bindings etc is hidden by default, Single site auto bindings (existing https hostname bindings updated, new https bindings created if http binding already exists) could be basic mode.
+* Specific date/time renewal: target a specific time and day of week, month etc for a particular managed certificate renewal. Option to wait until next date before re-attempting if renewal fails.
 
 ## Improve config checks
 * Ensure config check/validation wrote to disk before proceeding.
@@ -75,22 +74,22 @@ if any other deployment (cert only etc) chosen preview still says IIS~~
 * ~~Warn user if no bindings will be created/updated and deployment is not storage only etc~~
 
 ## DNS Provider extensions
-* Scripted DNS update provider
-* Manual DNS update workflow
+* ~~Scripted DNS update provider~~
+* ~~Manual DNS update workflow~~
 * libcloud python provider (extra download)
 * list config from providerconfig.json or similar to allows custom providers (credential settings etc)
 
 # Future:
 
 ## Authorization
-* multi auth (auth type, auth credentials etc) per managed cert to support single certs with multiple domains from different zones/DNS providers, or mixing http auth with DNS.
+* ~~multi auth (auth type, auth credentials etc) per managed cert to support single certs with multiple domains from different zones/DNS providers, or mixing http auth with DNS.~~
 
 ## Deployment
 * Option to export pfx/cert with fixed file name to shared cert store after renewal completed
 
 ## Portal/API
 * Website looks awful, clean up
-* use githb markdown as source for website content
+* ~~use githb markdown as source for docs content~~
 * ~~Add help/guide content to websites~~
 * Separate dashboard from main website
 * Move API to AWS/Azure
