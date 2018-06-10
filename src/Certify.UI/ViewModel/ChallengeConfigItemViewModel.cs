@@ -30,6 +30,8 @@ namespace Certify.UI.ViewModel
         };
 
         public bool UsesCredentials { get; set; }
+        public bool ShowZoneLookup { get; set; }
+        public bool IsZoneLookupInProgress { get; set; }
 
         public ObservableCollection<ProviderDefinition> ChallengeProviders
         {
@@ -42,6 +44,8 @@ namespace Certify.UI.ViewModel
                     .ToList());
             }
         }
+
+        public ObservableCollection<Models.Providers.DnsZone> DnsZones { get; set; } = new ObservableCollection<Models.Providers.DnsZone>();
 
         public ObservableCollection<StoredCredential> FilteredCredentials
         {

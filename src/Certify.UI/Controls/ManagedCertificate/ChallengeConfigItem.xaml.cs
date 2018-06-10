@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
@@ -20,6 +21,13 @@ namespace Certify.UI.Controls.ManagedCertificate
         public ChallengeConfigItem()
         {
             InitializeComponent();
+
+            DataContextChanged += ChallengeConfigItem_DataContextChanged;
+        }
+
+        private async void ChallengeConfigItem_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            await RefreshAllOptions();
         }
 
         private ChallengeConfigItemViewModel EditModel
@@ -91,8 +99,6 @@ namespace Certify.UI.Controls.ManagedCertificate
             //select first credential by default
             if (credentials.Count() > 0)
             {
-                EditModel.UsesCredentials = true;
-                EditModel.RaisePropertyChangedEvent(nameof(EditModel.UsesCredentials));
 
                 var selectedCredential = credentials.FirstOrDefault(c => c.StorageKey == EditModel.SelectedItem.ChallengeCredentialKey);
                 if (selectedCredential != null)
@@ -104,31 +110,60 @@ namespace Certify.UI.Controls.ManagedCertificate
                     EditModel.SelectedItem.ChallengeCredentialKey = credentials.First().StorageKey;
                 }
             }
-            else
-            {
-                EditModel.UsesCredentials = false;
-                EditModel.RaisePropertyChangedEvent(nameof(EditModel.UsesCredentials));
-            }
+
         }
 
         private void RefreshParameters()
         {
-            EditModel.SelectedItem.Parameters = new ObservableCollection<ProviderParameter>();
+            if (EditModel.SelectedItem.Parameters == null) EditModel.SelectedItem.Parameters = new ObservableCollection<ProviderParameter>();
+
             var definition = AppViewModel.ChallengeAPIProviders.FirstOrDefault(p => p.Id == EditModel.SelectedItem.ChallengeProvider);
 
             if (definition != null)
             {
-                foreach (var pa in definition.ProviderParameters.Where(p => p.IsCredential == false))
+                if (definition.ProviderParameters.Any(p => p.IsCredential))
+                {
+                    EditModel.UsesCredentials = true;
+                }
+                else
+                {
+                    EditModel.UsesCredentials = false;
+                }
+
+                // add or update provider parameters (if any) TODO: remove unused params
+                var providerParams = definition.ProviderParameters.Where(p => p.IsCredential == false);
+                foreach (var pa in providerParams)
                 {
                     // if zoneid previously stored, migrate to provider param
-                    if (pa.Key == "zoneid" && !String.IsNullOrEmpty(EditModel.SelectedItem.ZoneId))
+                    if (pa.Key == "zoneid")
                     {
-                        pa.Value = EditModel.SelectedItem.ZoneId;
+                        if (!String.IsNullOrEmpty(EditModel.SelectedItem.ZoneId))
+                        {
+                            pa.Value = EditModel.SelectedItem.ZoneId;
+                            EditModel.SelectedItem.ZoneId = null;
+                        }
                     }
 
-                    EditModel.SelectedItem.Parameters.Add(pa);
+                    if (!EditModel.SelectedItem.Parameters.Any(p => p.Key == pa.Key))
+                    {
+                        EditModel.SelectedItem.Parameters.Add(pa);
+                    }
+                }
+
+                var toRemove = new List<ProviderParameter>();
+
+                toRemove.AddRange(EditModel.SelectedItem.Parameters.Where(p => !providerParams.Any(pp => pp.Key == p.Key)));
+                foreach (var r in toRemove)
+                {
+                    EditModel.SelectedItem.Parameters.Remove(r);
                 }
             }
+        }
+
+        private async Task RefreshAllOptions()
+        {
+            RefreshParameters();
+            await RefreshCredentialOptions();
         }
 
         private async void ChallengeAPIProviderList_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -139,9 +174,7 @@ namespace Certify.UI.Controls.ManagedCertificate
             {
                 EditModel.SelectedItem.ChallengeProvider = challengeProviderType;
 
-                await RefreshCredentialOptions();
-
-                RefreshParameters();
+                await RefreshAllOptions();
             }
         }
 
@@ -152,21 +185,85 @@ namespace Certify.UI.Controls.ManagedCertificate
 
         private void DeleteAuth_Click(object sender, RoutedEventArgs e)
         {
-            if (MessageBox.Show("Are you sure you want to delete this configuration?", "Confirm Delete", MessageBoxButton.YesNoCancel)== MessageBoxResult.Yes)
+            if (MessageBox.Show("Are you sure you want to delete this configuration?", "Confirm Delete", MessageBoxButton.YesNoCancel) == MessageBoxResult.Yes)
             {
                 // delete 
                 if (sender is Button)
                 {
                     var config = (sender as Button).Tag;
-                    if (AppViewModel.SelectedItem.RequestConfig.Challenges.Count>1)
+                    if (AppViewModel.SelectedItem.RequestConfig.Challenges.Count > 1)
                     {
                         AppViewModel.SelectedItem.RequestConfig.Challenges.Remove((Models.CertRequestChallengeConfig)config);
-                    } else
+                    }
+                    else
                     {
                         MessageBox.Show("At least one authorization configuration is required.");
                     }
                 }
             }
+        }
+
+        private async Task RefreshDnsZoneLookup()
+        {
+            EditModel.IsZoneLookupInProgress = true;
+            try
+            {
+                this.EditModel.DnsZones = new ObservableCollection<Models.Providers.DnsZone>(new System.Collections.Generic.List<Models.Providers.DnsZone> {
+                    new Models.Providers.DnsZone {
+                        ZoneId="",
+                        Name ="(Fetching..)"
+                    }
+                });
+
+                // fetch dns zone list from api 
+                var zones = await AppViewModel.CertifyClient.GetDnsProviderZones(EditModel.SelectedItem.ChallengeProvider, EditModel.SelectedItem.ChallengeCredentialKey);
+
+                // populate dropdown, default to no selection
+                zones.Insert(0, new Models.Providers.DnsZone { ZoneId = "", Name = "(Select Zone)" });
+                this.EditModel.DnsZones = new ObservableCollection<Models.Providers.DnsZone>(zones);
+                this.DnsZoneList.SelectedValue = "";
+            }
+            catch (Exception)
+            {
+                MessageBox.Show("Dns Zone Lookup could not be completed. Check credentials are correctly set.");
+            }
+            finally
+            {
+                EditModel.IsZoneLookupInProgress = false;
+            }
+        }
+
+        private async void PerformDnsZoneLookup_Click(object sender, RoutedEventArgs e)
+        {
+            await RefreshDnsZoneLookup();
+        }
+
+        private void DnsZoneList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (DnsZoneList.SelectedValue != null && DnsZoneList.SelectedValue.ToString() != "")
+            {
+                var param = EditModel.SelectedItem.Parameters.Where(pa => pa.Key == "zoneid").FirstOrDefault();
+                if (param != null)
+                {
+                    param.Value = DnsZoneList.SelectedValue.ToString();
+                    EditModel.SelectedItem.Parameters = new ObservableCollection<ProviderParameter>(EditModel.SelectedItem.Parameters);
+                    EditModel.ShowZoneLookup = false;
+                }
+            }
+        }
+
+        private async void DnsZoneList_DropDownOpened(object sender, EventArgs e)
+        {
+            if (EditModel.DnsZones == null || !EditModel.DnsZones.Any())
+            {
+                await RefreshDnsZoneLookup();
+            }
+        }
+
+        private async void ShowParamLookup_Click(object sender, RoutedEventArgs e)
+        {
+            EditModel.ShowZoneLookup = true;
+            await RefreshDnsZoneLookup();
         }
     }
 }
